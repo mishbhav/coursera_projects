@@ -6,3 +6,4 @@ chromadb
 pypdf
 gradio
 sentence-transformers
+langchain-ollama
