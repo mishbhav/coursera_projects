@@ -1,0 +1,8 @@
+langchain-huggingface>=0.1.0
+langchain-text-splitters
+langchain-community
+langchain-core
+chromadb
+pypdf
+gradio
+pip install sentence-transformers
