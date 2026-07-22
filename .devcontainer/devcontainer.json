@@ -1,0 +1,5 @@
+{
+  "name": "Python & Ollama Space",
+  "postCreateCommand": "curl -fsSL https://ollama.com | sh",
+  "onCreateCommand": "nohup ollama serve > /tmp/ollama.log 2>&1 &"
+}
