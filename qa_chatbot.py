@@ -1,16 +1,12 @@
 import os
 import warnings
-
-# Modern LangChain partner package for Hugging Face integration
-from langchain_huggingface import HuggingFaceEndpoint, HuggingFaceEmbeddings
-
+from langchain_huggingface import HuggingFaceEndpoint, HuggingFaceEmbeddings, ChatHuggingFace
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
-
 import gradio as gr
 
 # Suppress warnings
@@ -19,11 +15,9 @@ def warn(*args, **kwargs):
 warnings.warn = warn
 warnings.filterwarnings('ignore')
 
-os.environ["CHROMA_TELEMETRY_STATUS"] = "False"
-
 # --- CONFIGURATION ---
-# Read the secret you added to your GitHub Codespace
 HF_TOKEN = os.getenv("HF_API_TOKEN")
+os.environ["CHROMA_TELEMETRY_STATUS"] = "False"
 
 # Safety check to avoid NoneType errors and provide clear instructions
 if not HF_TOKEN:
@@ -32,22 +26,23 @@ if not HF_TOKEN:
         "Codespace container after adding the repository secret so it can load."
     )
 
-# Map your secret to the exact variable LangChain searches for internally
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = HF_TOKEN
 
 
-## Free LLM via Hugging Face Inference API
+## initialize LLM using HuggingFace
 def get_llm():
-    # Using Mistral-7B-Instruct-v0.2 which is fast, high quality, and free over the API
-    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
+    model_id = "meta-llama/Llama-3.1-8B-Instruct"
     
-    watsonx_llm = HuggingFaceEndpoint(
+    # 1. Configure the baseline endpoint configuration
+    llm_endpoint = HuggingFaceEndpoint(
         repo_id=model_id,
-        max_new_tokens=256,
+        max_new_tokens=1024,  # Increased token ceiling for richer responses
         temperature=0.5,
         huggingfacehub_api_token=HF_TOKEN
     )
-    return watsonx_llm
+    
+    # 2. Wrap it in ChatHuggingFace to automatically map conversational routing
+    return ChatHuggingFace(llm=llm_endpoint)
 
 
 ## Document loader
@@ -58,10 +53,9 @@ def document_loader(file):
 
 ## Text splitter
 def text_splitter(data):
-    # Fixed typo: renamed instantiation variable to avoid overwriting the class name
     splitter_obj = RecursiveCharacterTextSplitter(
-        chunk_size=100,
-        chunk_overlap=20,
+        chunk_size=500,  # Increased chunk size from 100 for better semantic context
+        chunk_overlap=50,
         length_function=len,
     )
     chunks = splitter_obj.split_documents(data)
@@ -69,8 +63,7 @@ def text_splitter(data):
 
 
 ## Free Embedding Model running locally on your device
-def watsonx_embedding():
-    # Uses sentence-transformers/all-MiniLM-L6-v2 which runs extremely fast on CPU
+def llm_embedding():
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
@@ -78,7 +71,7 @@ def watsonx_embedding():
 
 ## Vector db
 def vector_database(chunks):
-    embedding_model = watsonx_embedding()
+    embedding_model = llm_embedding()
     vectordb = Chroma.from_documents(chunks, embedding_model)
     return vectordb
 
@@ -136,7 +129,7 @@ rag_application = gr.Interface(
         gr.Textbox(label="Input Query", lines=2, placeholder="Type your question here...")
     ],
     outputs=gr.Textbox(label="Output"),
-    title="Ai Chatbot (Hugging Face Free Tier)",
+    title="Ai Chatbot",
     description="Upload a PDF document and ask any question. The chatbot uses a free Hugging Face model to answer."
 )
 
