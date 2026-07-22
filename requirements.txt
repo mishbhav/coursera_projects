@@ -5,4 +5,4 @@ langchain-core
 chromadb
 pypdf
 gradio
-pip install sentence-transformers
+sentence-transformers
